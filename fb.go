@@ -18,9 +18,9 @@ var (
 	getID       = flag.Bool("i", false, "print user ID")
 	getFeed     = flag.Bool("f", true, "get user feed")
 	getComments = flag.Bool("c", true, "get feed comments")
+	getLikes    = flag.Bool("l", false, "get users that liked posts")
 	getVideos   = flag.Bool("v", true, "get video lists")
 	getPhotos   = flag.Bool("p", true, "get photo lists")
-	getLikes    = flag.Bool("l", false, "get users that liked posts")
 )
 
 var (
