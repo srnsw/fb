@@ -4,6 +4,7 @@
 
 In order to run, you need to set the appID, appSecret and redirectURI variables with details from your facebook developer account. You can do this by editing the fb.go script or by including your own config.go file with contents like this:
 
+```golang
 package main
 
 func init() {
@@ -11,6 +12,7 @@ func init() {
     appSecret = "XXXXXXXXXXX"
     redirectURI = "https://www.example.com/"
 }
+```
 
 Once done, use `go install` to build.
 
