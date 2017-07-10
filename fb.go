@@ -120,12 +120,9 @@ func writePhotoMetas(session *fb.Session) {
 		fmt.Println(err)
 		return
 	}
-	ids, albums := ret[1], ret[3]
-	for i, v := range albums {
-		if v == "Timeline Photos" {
-			continue
-		}
-		photo, err := photoMeta(session, v, ids[i])
+	ids := ret[1]
+	for _, id := range albums {
+		photo, err := photoMeta(session, v, id)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(1)
@@ -135,7 +132,7 @@ func writePhotoMetas(session *fb.Session) {
 			fmt.Print(err)
 			os.Exit(1)
 		}
-		ioutil.WriteFile("photos/"+photo.CreatedTime[:10]+"_"+ids[i]+".json", byts, 0666)
+		ioutil.WriteFile("photos/"+photo.CreatedTime[:10]+"_"+id+".json", byts, 0666)
 	}
 }
 
