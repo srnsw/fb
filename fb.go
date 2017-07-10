@@ -21,6 +21,9 @@ var (
 	getLikes    = flag.Bool("l", false, "get users that liked posts")
 	getVideos   = flag.Bool("v", true, "get video lists")
 	getPhotos   = flag.Bool("p", true, "get photo lists")
+	packPosts   = flag.Bool("pack", false, "build posts folders")
+	packPhotos  = flag.Bool("packp", false, "build photos folders")
+	dataDir     = flag.String("data", "", "location of fb data")
 )
 
 var (
@@ -34,6 +37,9 @@ func main() {
 	flag.Parse()
 	if len(flag.Args()) > 0 {
 		fbUser = flag.Arg(0)
+	}
+	if *packPosts || *packPhotos {
+		log.Fatal(pack(*packPosts, *packPhotos, *dataDir))
 	}
 	if fbUser == "" {
 		log.Fatal("Must provide a facebook user name or ID to harvest e.g. `fb richardlehane`")
