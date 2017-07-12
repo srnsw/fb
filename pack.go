@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -73,7 +74,7 @@ func simpleID(id string) string {
 	return split[len(split)-1]
 }
 
-func obj(photosMap, videosMap map[string]string, linked map[string]bool, dir string, g gen, r rdr) filepath.WalkFunc {
+func obj(photosMap, videosMap map[string]string, dir string, g gen, r rdr, w io.Writer) filepath.WalkFunc {
 	return func(path string, info os.FileInfo, err error) error {
 		if filepath.Ext(path) != ".json" {
 			return nil
@@ -86,36 +87,25 @@ func obj(photosMap, videosMap map[string]string, linked map[string]bool, dir str
 		if err = json.Unmarshal(byt, entity); err != nil {
 			return err
 		}
-		id, create, link, typ := r(entity)
+		id, create, link := r(entity)
 		target := filepath.Join(dir, "out", create+"_"+id)
 		photo, pok := photosMap[id]
 		if pok {
-			if err = wincommands.FileCopyList(photo, target, false); err != nil {
+			if err = wincommands.FileCopyLog(w, photo, target, false); err != nil {
 				return err
 			}
 		} else {
 			photo, pok = photosMap[link]
-			if err = wincommands.FileCopyList(photo, target, false); err != nil {
-				return err
+			if pok {
+				if err = wincommands.FileCopyLog(w, photo, target, false); err != nil {
+					return err
+				}
 			}
 		}
 		video, vok := videosMap[id]
 		if vok {
-			if err = wincommands.FileCopyList(video, target, false); err != nil {
+			if err = wincommands.FileCopyLog(w, video, target, false); err != nil {
 				return err
-			}
-		}
-		if !vok && !pok {
-			switch typ {
-			case "link", "status":
-			default:
-				fmt.Println(id + " " + typ)
-			}
-		} else {
-			if pok {
-				linked[photo] = true
-			} else {
-				linked[video] = true
 			}
 		}
 		return wincommands.FileCopy(path, target, false)
@@ -132,20 +122,19 @@ func photoGen() interface{} {
 	return &Photo{}
 }
 
-type rdr func(v interface{}) (id, created, link, typ string)
+type rdr func(v interface{}) (id, created, link string)
 
-func postRdr(v interface{}) (string, string, string, string) {
+func postRdr(v interface{}) (string, string, string) {
 	post := v.(*Post)
-	return simpleID(post.Id), post.CreatedTime[:10], post.Link, post.Type
+	return simpleID(post.Id), post.CreatedTime[:10], post.Link
 }
 
-func photoRdr(v interface{}) (string, string, string, string) {
+func photoRdr(v interface{}) (string, string, string) {
 	photo := v.(*Photo)
-	return simpleID(photo.Id), photo.CreatedTime[:10], photo.Link, "non post photo"
+	return simpleID(photo.Id), photo.CreatedTime[:10], photo.Link
 }
 
 func pack(postsf, photosf bool, dir string) error {
-	linked := make(map[string]bool)
 	photosMap, err := buildMap(filepath.Join(dir, "media", "photos"), photoID)
 	if err != nil {
 		return err
@@ -155,31 +144,24 @@ func pack(postsf, photosf bool, dir string) error {
 	if err != nil {
 		return err
 	}
+	run := filepath.Join(dir, "run.bat")
+	_ = os.Remove(run) // clear previous runs if any
+	lg, err := os.Create(run)
+	defer lg.Close()
+	if err != nil {
+		return err
+	}
 	if postsf {
 		if err = filepath.Walk(filepath.Join(dir, "posts"),
-			obj(photosMap, videosMap, linked, dir, postGen, postRdr)); err != nil {
+			obj(photosMap, videosMap, dir, postGen, postRdr, lg)); err != nil {
 			return err
 		}
 	}
 	if photosf {
 		if err = filepath.Walk(filepath.Join(dir, "photos"),
-			obj(photosMap, videosMap, linked, dir, photoGen, photoRdr)); err != nil {
+			obj(photosMap, videosMap, dir, photoGen, photoRdr, lg)); err != nil {
 			return err
 		}
-	}
-	missing := make(map[string]bool)
-	for _, v := range photosMap {
-		if !linked[v] {
-			missing[v] = true
-		}
-	}
-	for _, v := range videosMap {
-		if !linked[v] {
-			missing[v] = true
-		}
-	}
-	for k, _ := range missing {
-		fmt.Println(k)
 	}
 	return nil
 }
