@@ -2,7 +2,13 @@
 
 ## Setup
 
-In order to run, you need to set the appID, appSecret and redirectURI variables with details from your facebook developer account. You can do this by editing the fb.go script or by including your own config.go file with contents like this:
+In order to run, you need to set the appID, appSecret and redirectURI variables with details from your facebook developer account. The first step is to get these details by setting up a facebook developer account. 
+
+Once you have them, you can add them in three ways:
+
+  - by editing the fb.go script, 
+  - by defining "FB_APP_ID", "FB_APP_SECRET", "FB_REDIRECT" environment variables with those values
+  - or by including a config.go file with contents like this:
 
 ```golang
 package main
